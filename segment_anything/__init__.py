@@ -13,4 +13,4 @@ from .build_sam import (
 )
 from .predictor import SamPredictor
 from .automatic_mask_generator import SamAutomaticMaskGenerator
-from .notebooks import myshow
+from .myshow import myshow, myshow3d
