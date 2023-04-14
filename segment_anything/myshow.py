@@ -5,9 +5,8 @@ from ipywidgets import interact, interactive
 from ipywidgets import widgets
 
 
-def myshow(img, title=None, margin=0.05, dpi=80, cmap="gray"):
-    nda = sitk.GetArrayFromImage(img)
-
+def myshow(nda, title=None, margin=0.05, dpi=80, cmap="gray"):
+    img = sitk.GetImgFromArray(nda)
     spacing = img.GetSpacing()
     slicer = False
 
@@ -37,23 +36,29 @@ def myshow(img, title=None, margin=0.05, dpi=80, cmap="gray"):
 
     # Make a figure big enough to accommodate an axis of xpixels by ypixels
     # as well as the ticklabels, etc...
-    figsize = (1 + margin) * ysize / dpi, (1 + margin) * xsize / dpi
+    if fSize is None:
+        fSize = (1 + margin) * ysize / dpi, (1 + margin) * xsize / dpi
 
-    def callback(z=None):
-        extent = (0, xsize * spacing[1], ysize * spacing[0], 0)
+    def callback(fSize = None, z=None):
+        if fSize is None:
+            extent = (0, xsize * spacing[1], ysize * spacing[0], 0)
 
-        fig = plt.figure(figsize=figsize, dpi=dpi)
+            fig = plt.figure(figsize=fSize, dpi=dpi)
 
-        # Make the axis the right size...
-        ax = fig.add_axes([margin, margin, 1 - 2 * margin, 1 - 2 * margin])
+            # Make the axis the right size...
+            ax = fig.add_axes([margin, margin, 1 - 2 * margin, 1 - 2 * margin])
 
-        if z is None:
-            ax.imshow(nda, extent=extent, interpolation=None, cmap=cmap)
+            if z is None:
+                ax.imshow(nda, extent=extent,interpolation=None, cmap=cmap)
+            else:
+                ax.imshow(nda[z, ...], extent=extent, interpolation=None, cmap=cmap)
         else:
-            ax.imshow(nda[z, ...], extent=extent, interpolation=None, cmap=cmap)
-
+            plt.figure(figsize=fSize)
+            plt.imshow(nda, interpolation=None, cmap=cmap)
+            plt.axis(ax)
         if title:
             plt.title(title)
+        show_anns(anns)
 
         plt.show()
 
@@ -62,6 +67,21 @@ def myshow(img, title=None, margin=0.05, dpi=80, cmap="gray"):
     else:
         callback()
 
+def show_anns(anns):
+    if anns == 0:
+        return
+    sorted_anns = sorted(anns, key=(lambda x: x['area']), reverse=True)
+    ax = plt.gca() # get current axis
+    ax.set_autoscale_on(False)
+    polygons = []
+    color = []
+    for ann in sorted_anns:
+        m = ann['segmentation']
+        img = np.ones((m.shape[0], m.shape[1], 3)) # RGB image
+        color_mask = np.random.random((1, 3)).tolist()[0]
+        for i in range(3):
+            img[:,:,i] = color_mask[i]
+        ax.imshow(np.dstack((img, m*0.35)))
 
 def myshow3d(img, xslices=[], yslices=[], zslices=[], title=None, margin=0.05, dpi=80):
     size = img.GetSize()
