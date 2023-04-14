@@ -136,27 +136,27 @@ class SamAutomaticMaskGenerator:
     @torch.no_grad()
     def generate(self, image: np.ndarray) -> List[Dict[str, Any]]:
         """
-        Generates masks for the given image.
+        为给定图像生成蒙版。
 
-        Arguments:
-          image (np.ndarray): The image to generate masks for, in HWC uint8 format.
+        参数：
+          image (np.ndarray)：要为其生成掩码的图像，采用 HWC uint8 格式。
 
-        Returns:
-           list(dict(str, any)): A list over records for masks. Each record is
-             a dict containing the following keys:
-               segmentation (dict(str, any) or np.ndarray): The mask. If
-                 output_mode='binary_mask', is an array of shape HW. Otherwise,
-                 is a dictionary containing the RLE.
-               bbox (list(float)): The box around the mask, in XYWH format.
-               area (int): The area in pixels of the mask.
-               predicted_iou (float): The model's own prediction of the mask's
-                 quality. This is filtered by the pred_iou_thresh parameter.
-               point_coords (list(list(float))): The point coordinates input
-                 to the model to generate this mask.
-               stability_score (float): A measure of the mask's quality. This
-                 is filtered on using the stability_score_thresh parameter.
-               crop_box (list(float)): The crop of the image used to generate
-                 the mask, given in XYWH format.
+        退货：
+           list(dict(str, any))：掩码记录列表。每条记录是
+             包含以下键的字典：
+               segmentation (dict(str, any) or np.ndarray)：掩码。如果
+                 output_mode='binary_mask'，是形状为 HW 的数组。否则，
+                 是包含 RLE 的字典。
+               bbox (list(float))：mask 周围的框，XYWH 格式。
+               area (int): 遮罩的面积（以像素为单位）。
+               predicted_iou (float): 模型自己对mask的预测
+                 质量。这是由 pred_iou_thresh 参数过滤的。
+               point_coords (list(list(float))): 点坐标输入
+                 到模型以生成此掩码。
+               stability_score (float)：掩模质量的衡量标准。这
+               使用 stability_score_thresh 参数过滤。
+               crop_box (list(float)): 用于生成图像的crop
+                 掩码，以 XYWH 格式给出。
         """
 
         # Generate masks
@@ -231,8 +231,12 @@ class SamAutomaticMaskGenerator:
     ) -> MaskData:
         # Crop the image and calculate embeddings
         x0, y0, x1, y1 = crop_box
-        cropped_im = image[y0:y1, x0:x1, :]
-        cropped_im_size = cropped_im.shape[:2]
+        if image.ndim == 3:
+            cropped_im = image[y0:y1, x0:x1, :]
+            cropped_im_size = cropped_im.shape[:2]
+        elif image.ndim == 2:
+            cropped_im = image[y0:y1, x0:x1]
+            cropped_im_size = cropped_im.shape
         self.predictor.set_image(cropped_im)
 
         # Get points for this crop
