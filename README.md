@@ -7,11 +7,14 @@
 
 \[[`纸`](https://ai.facebook.com/research/publications/segment-anything/)]\[[`项目`](https://segment-anything.com/)]\[[`演示`](https://segment-anything.com/demo)]\[[`数据集`](https://segment-anything.com/dataset/index.html)]\[[`博客`](https://ai.facebook.com/blog/segment-anything-foundation-model-image-segmentation/)]\[[`BibTeX`](#citing-segment-anything)]
 
-[![地对空导弹设计](/jumbojing/segment-anything/raw/main/assets/model_diagram.png?raw=true)](/jumbojing/segment-anything/blob/main/assets/model_diagram.png?raw=true)
+![SAM design](assets/model_diagram.png?raw=true)
 
-**分割任何模型 （SAM**） 根据输入提示（如点或框）生成高质量的对象蒙版，并可用于为图像中的所有对象生成蒙版。它已经在 11 万张图像和 1 亿个掩码的[数据集](https://segment-anything.com/dataset/index.html)上进行了训练，并且在各种分割任务上具有强大的零镜头性能。
+**分割万物模型 （SAM）**  根据输入提示（如点或框）生成高质量的对象蒙版，并可用于为图像中的所有对象生成蒙版。它已经在 11 万张图像和 1 亿个掩码的[数据集](https://segment-anything.com/dataset/index.html)上进行了训练，并且在各种分割任务上具有强大的零镜头性能。
 
-[![](/jumbojing/segment-anything/raw/main/assets/masks1.png?raw=true)](/jumbojing/segment-anything/blob/main/assets/masks1.png?raw=true) [![](/jumbojing/segment-anything/raw/main/assets/masks2.jpg?raw=true)](/jumbojing/segment-anything/blob/main/assets/masks2.jpg?raw=true)
+<p float="left">
+  <img src="assets/masks1.png?raw=true" width="37.25%" />
+  <img src="assets/masks2.jpg?raw=true" width="61.5%" />
+</p>
 
 ## [](#installation)安装
 
