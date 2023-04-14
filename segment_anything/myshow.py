@@ -5,7 +5,7 @@ from ipywidgets import interact, interactive
 from ipywidgets import widgets
 
 
-def myshow(nda, title=None, margin=0.05, dpi=80, cmap="gray"):
+def myshow(nda, anns = 0, ax = 'on', fSize = None, title=None, margin=0.05, dpi=80, cmap="gray"):
     img = sitk.GetImgFromArray(nda)
     spacing = img.GetSpacing()
     slicer = False
@@ -39,7 +39,7 @@ def myshow(nda, title=None, margin=0.05, dpi=80, cmap="gray"):
     if fSize is None:
         fSize = (1 + margin) * ysize / dpi, (1 + margin) * xsize / dpi
 
-    def callback(fSize = None, z=None):
+    def callback(fSize = fSize, ax=ax, z=None):
         if fSize is None:
             extent = (0, xsize * spacing[1], ysize * spacing[0], 0)
 
