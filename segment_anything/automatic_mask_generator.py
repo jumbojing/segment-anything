@@ -141,7 +141,7 @@ class SamAutomaticMaskGenerator:
         参数：
           image (np.ndarray)：要为其生成掩码的图像，采用 HWC uint8 格式。
 
-        退货：
+        返回：
            list(dict(str, any))：掩码记录列表。每条记录是
              包含以下键的字典：
                segmentation (dict(str, any) or np.ndarray)：掩码。如果
@@ -231,12 +231,11 @@ class SamAutomaticMaskGenerator:
     ) -> MaskData:
         # Crop the image and calculate embeddings
         x0, y0, x1, y1 = crop_box
-        if image.ndim == 3:
-            cropped_im = image[y0:y1, x0:x1, :]
-            cropped_im_size = cropped_im.shape[:2]
-        elif image.ndim == 2:
-            cropped_im = image[y0:y1, x0:x1]
-            cropped_im_size = cropped_im.shape
+        if image.ndim == 2:
+            # 增加一个维度，以便将其视为灰度图像
+            cropped_im = image[y0:y1, x0:x1, None]
+        cropped_im = image[y0:y1, x0:x1, :]
+        cropped_im_size = cropped_im.shape[:2]
         self.predictor.set_image(cropped_im)
 
         # Get points for this crop
