@@ -94,66 +94,97 @@ def myshow3d(img, xslices=[], yslices=[], zslices=[], title=None, margin=0.05, d
                 img_comps.append(sitk.Tile(img_slices_c, [maxlen, d]))
             img = sitk.Compose(img_comps)
 
-    myshow(img, title, margin, dpi)
+    skShow(img, title, margin, dpi)
     
     return img
 
-def myshow(img, title=None, margin=0.05, dpi=80, cmap="gray"):
+def orientDic(img):
+    return {'X': 'L-R'[img.GetDirection()[0]+1],
+            'Y': 'P-A'[img.GetDirection()[4]+1],
+            'Z': 'I-S'[img.GetDirection()[8]+1]}
+
+def skShow(img, 
+           slice = 'Z', 
+           title=None, 
+           margin=0.05, 
+           dpi=80, 
+           fSize=None,
+           cmap="gray"):
     if isinstance(img, np.ndarray):
         nda = np.copy(img)
         img = sitk.GetImageFromArray(img)
     else:
         nda = sitk.GetArrayFromImage(img)
     spacing = img.GetSpacing()
-    slicer = False
-
-    if nda.ndim == 3:
+    size = img.GetSize()
+    if nda.ndim == 3: # 若3维数组
         # fastest dim, either component or x
+        c = nda.shape[-1] # 通道数
+        if c in (3, 4): # 若通道数为3或4, 则认为是2D图像
+            nda = nda[:,:,0]
+    elif nda.ndim == 4: # 若4维数组
         c = nda.shape[-1]
-
-        # the the number of components is 3 or 4 consider it an RGB image
-        if not c in (3, 4):
-            slicer = True
-
-    elif nda.ndim == 4:
-        c = nda.shape[-1]
-
-        if not c in (3, 4):
+        if not c in (3, 4): # 若通道数不为3或4, 则认为是3Dv(4D)图像, 退出
             raise RuntimeError("Unable to show 3D-vector Image")
-
-        # take a z-slice
-        slicer = True
-
-    if slicer:
-        ysize = nda.shape[1]
-        xsize = nda.shape[2]
+        else:
+            # 去掉最后一维
+            nda = nda[:,:,:,0]
+    if nda.ndim == 2: # 若2维数组
+        nda = nda[np.newaxis, ...] # nda增加后的维度为3维, 且最后一维为1
+        size = (1) + size # size增加后的维度为3维, 且最后一维为1
+        spacing = 1.
+    # nda.shape = shape# nda的方向为LPS
+    # size = nda.shape # size为z,y,x
+    print('size:',size)
+    xyzSize = [int(i+1) 
+               for i 
+               in (np.array(spacing)*np.array(size))
+              ]
+    sInd = dict(Z=0, Y=1, X=2)
+    sDic = [dict(drt=['A-->P', 'L<--R'],
+                 nda=nda, # nda的方向为LPS
+                 fsize=(size[0], size[1]), # fsize为x,y
+                 xyzSize=(xyzSize[0], xyzSize[1]),
+                 size= size[2],
+                 extent = (xyzSize[0],0,0,xyzSize[1]) # (left, right, bottom, top)
+                 ),
+            dict(drt=['I<--S', 'L<--R'],
+                 nda=np.transpose(nda, (1,0,2)), # nda的方向为PLS
+                 fsize=(size[0], size[2]),
+                 xyzSize=(xyzSize[0], xyzSize[2]),  
+                 size= size[1],
+                 extent = (xyzSize[0],0,xyzSize[1],0) # (left, right, bottom, top)
+                 ),
+            dict(drt=['I<--S', 'P<--A'],
+                 nda=np.transpose(nda, (2,0,1)), # nda的方向为SLP
+                 fsize=(size[2], size[1]),
+                 xyzSize=(xyzSize[0], xyzSize[1]),
+                 size= size[0],
+                 extent = (xyzSize[0],0,xyzSize[1],0) # (left, right, bottom, top)
+                 )][sInd[slice]]
+    if fSize is not None:
+        figsize = fSize
     else:
-        ysize = nda.shape[0]
-        xsize = nda.shape[1]
+        figsize = (1 + margin) * sDic['fsize'][0] / dpi, (1 + margin) * sDic['fsize'][1] / dpi # TypeError: string indices must be integers
+    # extent = (0, sDic['xyzSize'][0], sDic['xyzSize'][1],0) # (left, right, bottom, top)
+    nda = sDic['nda']
+    drt = sDic['drt']
+    def callback(axe=None):
 
-    # Make a figure big enough to accommodate an axis of xpixels by ypixels
-    # as well as the ticklabels, etc...
-    figsize = (1 + margin) * ysize / dpi, (1 + margin) * xsize / dpi
+        fig = plt.figure(figsize=figsize, dpi=dpi) # figsize: (width, height) in inches
 
-    def callback(z=None):
-        extent = (0, xsize * spacing[1], ysize * spacing[0], 0)
-
-        fig = plt.figure(figsize=figsize, dpi=dpi)
-
-        # Make the axis the right size...
         ax = fig.add_axes([margin, margin, 1 - 2 * margin, 1 - 2 * margin])
 
-        if z is None:
-            ax.imshow(nda, extent=extent, interpolation=None, cmap=cmap)
-        else:
-            ax.imshow(nda[z, ...], extent=extent, interpolation=None, cmap=cmap)
+        ax.imshow(nda[axe, ...], extent=sDic['extent'], interpolation=None, cmap=cmap)
+
+        # 在图像上标注坐标轴
+        ax.set_ylabel(drt[0])
+        ax.set_xlabel(drt[1])
 
         if title:
             plt.title(title)
 
-        plt.show()
-
-    if slicer:
-        interact(callback, z=(0, nda.shape[0] - 1))
+        return plt.show()
+    interact(callback, axe=(0, sDic['size'] - 1))
     else:
         callback()
