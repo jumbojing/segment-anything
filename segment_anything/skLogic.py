@@ -186,5 +186,3 @@ def skShow(img,
 
         return plt.show()
     interact(callback, axe=(0, sDic['size'] - 1))
-    else:
-        callback()
