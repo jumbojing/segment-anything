@@ -50,7 +50,21 @@ def readImgSk(filePath=None, img = None, img3C = True):
         return sitk.GetArrayFromImage(sitk.Compose([img_vbCT_255]*3))
     else:
         return img_vbCT_255
+    
+def cropOtsu(image):
+    ''' Otsu阈值裁图
+    '''
+    inside_value = 0
+    outside_value = 255
+    label_shape_filter = sitk.LabelShapeStatisticsImageFilter() # 用于计算图像的轴对齐边界框。
+    label_shape_filter.Execute(sitk.OtsuThreshold(image, inside_value, outside_value))
+    bounding_box = label_shape_filter.GetBoundingBox(outside_value) # 获取边界框
+    return sitk.RegionOfInterest(image,
+                                 bounding_box[int(len(bounding_box) / 2) :],
+                                 bounding_box[0 : int(len(bounding_box) / 2)],)
+
 def sk3C2gd(img):
+    # 三通道转灰度
     if img.GetDimension() == 3:
         return (sitk.VectorIndexSelectionCast(img, 0) +
                 sitk.VectorIndexSelectionCast(img, 1) +
