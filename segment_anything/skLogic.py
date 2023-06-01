@@ -4,6 +4,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 from IPython.display import display
 from ipywidgets import interact
+import pickle
+
+def pk2file(file, data=None, save=True):
+    if save:
+        with open(file, 'wb') as f:
+            pickle.dump(data, f)
+    else:
+        with open(file, 'rb') as f:
+            data = pickle.load(f)
+        return data
 
 def readDcm(dcm_path):
     """
