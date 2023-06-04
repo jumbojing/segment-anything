@@ -263,7 +263,7 @@ def svShow(img, anns = None, lbs='', mask=True, svBx=True, show=False):
             print('啥都不要, 所以啥都没有...')
             return  dets     
     if show:
-        %matplotlib inline
+#         %matplotlib inline
         sv.plot_image(annotated_image, (16, 16))
     else:
         return annotated_image, dets
