@@ -212,8 +212,15 @@ def skShow(img,
         return plt.show()
     interact(callback, axe=(0, sDic['size'] - 1))
     
-    def svAllSam(sam_result):
     
+def xywh_to_xyxy(boxes_xywh: np.ndarray) -> np.ndarray:
+    xyxy = boxes_xywh.copy()
+    xyxy[:, 2] = boxes_xywh[:, 0] + boxes_xywh[:, 2]
+    xyxy[:, 3] = boxes_xywh[:, 1] + boxes_xywh[:, 3]
+    return xyxy
+
+
+def svAllSam(sam_result): # 将全分的结果转为sv.Dets    
     sorted_generated_masks = sorted(
         sam_result, key=lambda x: x["area"], reverse=True
     )
@@ -228,12 +235,11 @@ def skShow(img,
                          class_id=class_id
                         )
 
-def xywh_to_xyxy(boxes_xywh: np.ndarray) -> np.ndarray:
-    xyxy = boxes_xywh.copy()
-    xyxy[:, 2] = boxes_xywh[:, 0] + boxes_xywh[:, 2]
-    xyxy[:, 3] = boxes_xywh[:, 1] + boxes_xywh[:, 3]
-    return xyxy
-def svMks(img, anns = None, lbs='', mask=True, svBx=True, show=False):
+
+def svShow(img, anns = None, lbs='', mask=True, svBx=True, show=False):
+    ''' sv显示万分的anns
+    
+    '''
     dets = svAllSam(anns)
     box_annotator = sv.BoxAnnotator()
     mask_annotator = sv.MaskAnnotator()
