@@ -5,7 +5,7 @@ import numpy as np
 from IPython.display import display
 from ipywidgets import interact
 import pickle
-improt supervision as sv
+import supervision as sv
 
 def pk2file(file, data=None, save=True):
     if save:
