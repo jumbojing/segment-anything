@@ -5,6 +5,7 @@ import numpy as np
 from IPython.display import display
 from ipywidgets import interact
 import pickle
+improt supervision as sv
 
 def pk2file(file, data=None, save=True):
     if save:
@@ -155,7 +156,7 @@ def skShow(img,
             nda = nda[:,:,:,0]
     if nda.ndim == 2: # 若2维数组
         nda = nda[np.newaxis, ...] # nda增加后的维度为3维, 且最后一维为1
-        size = (1) + size # size增加后的维度为3维, 且最后一维为1
+        size = size + (1,) # size增加后的维度为3维, 且最后一维为1
         spacing = 1.
     # nda.shape = shape# nda的方向为LPS
     # size = nda.shape # size为z,y,x
@@ -210,3 +211,54 @@ def skShow(img,
 
         return plt.show()
     interact(callback, axe=(0, sDic['size'] - 1))
+    
+    def svAllSam(sam_result):
+    
+    sorted_generated_masks = sorted(
+        sam_result, key=lambda x: x["area"], reverse=True
+    )
+
+    xywh = np.array([mask["bbox"] for mask in sorted_generated_masks])
+    mask = np.array([mask["segmentation"] for mask in sorted_generated_masks])
+    confidence = np.array([mask["predicted_iou"] for mask in sorted_generated_masks])
+    class_id = np.arange(len(sorted_generated_masks))
+    return sv.Detections(xyxy=xywh_to_xyxy(boxes_xywh=xywh),
+                         mask=mask,
+                         confidence=np.array(confidence),
+                         class_id=class_id
+                        )
+
+def xywh_to_xyxy(boxes_xywh: np.ndarray) -> np.ndarray:
+    xyxy = boxes_xywh.copy()
+    xyxy[:, 2] = boxes_xywh[:, 0] + boxes_xywh[:, 2]
+    xyxy[:, 3] = boxes_xywh[:, 1] + boxes_xywh[:, 3]
+    return xyxy
+def svMks(img, anns = None, lbs='', mask=True, svBx=True, show=False):
+    dets = svAllSam(anns)
+    box_annotator = sv.BoxAnnotator()
+    mask_annotator = sv.MaskAnnotator()
+    if dets.class_id is None:
+        dets.class_id = np.arange(len(dets))    
+    labels = []
+    for _, _, confidence, class_id,_ in dets:
+        label = f'{lbs}_{class_id}: {confidence:0.2f}'
+        labels.append(label)    
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    if lbs != '':
+        dets.lable=lbs    
+    if mask:
+        annotated_image = mask_annotator.annotate(scene=img, detections=dets)
+        if svBx:
+            annotated_image = box_annotator.annotate(scene=annotated_image, detections=dets, labels=labels)
+    else:
+        if svBx:
+            annotated_image = box_annotator.annotate(scene=img, detections=dets, labels=labels)
+        else:
+            print('啥都不要, 所以啥都没有...')
+            return  dets     
+    if show:
+        %matplotlib inline
+        sv.plot_image(annotated_image, (16, 16))
+    else:
+        return annotated_image, dets
+    
