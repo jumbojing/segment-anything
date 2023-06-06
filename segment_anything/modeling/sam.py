@@ -17,30 +17,23 @@ from .prompt_encoder import PromptEncoder
 
 class Sam(nn.Module):
     mask_threshold: float = 0.0
-    image_format: str = "RGB"
+    image_format: str = "G"
 
     def __init__(
         self,
         image_encoder: ImageEncoderViT,
         prompt_encoder: PromptEncoder,
         mask_decoder: MaskDecoder,
-        pixel_mean: List[float] = [123.675, 116.28, 103.53],
-        pixel_std: List[float] = [58.395, 57.12, 57.375],
+        pixel_mean: List[float] = [116.28],
+        pixel_std: List[float] = [57.12],
     ) -> None:
         super().__init__()
         self.image_encoder = image_encoder
         self.prompt_encoder = prompt_encoder
         self.mask_decoder = mask_decoder
+        self.register_buffer("pixel_mean", torch.Tensor([pixel_mean[0]]).view(1), False)
+        self.register_buffer("pixel_std", torch.Tensor([pixel_std[0]]).view(1), False)
 
-        self.image_format = image_format
-        if self.image_format == image_format:
-            self.register_buffer("pixel_mean", torch.Tensor(pixel_mean).view(-1, 1, 1), False)
-            self.register_buffer("pixel_std", torch.Tensor(pixel_std).view(-1, 1, 1), False)
-        elif self.image_format == image_format[1]:
-            self.register_buffer("pixel_mean", torch.Tensor([pixel_mean[0]]).view(-1, 1, 1), False)
-            self.register_buffer("pixel_std", torch.Tensor([pixel_std[0]]).view(-1, 1, 1), False)
-        else:
-            raise ValueError(f"Invalid image format: {self.image_format}")
 
     @property
     def device(self) -> Any:
@@ -111,10 +104,9 @@ class Sam(nn.Module):
         return masks
 
     def preprocess(self, x: torch.Tensor) -> torch.Tensor:
-        if self.image_format == "RGB":
-            x = (x - self.pixel_mean) / self.pixel_std [3, 256, 256]
-        elif self.image_format == "G":
-            x = x.unsqueeze(0)
+        
+        x = (x - self.pixel_mean) / self.pixel_std # [3, 256, 256]
+
 
         h, w = x.shape[-2:]
         padh = self.image_encoder.img_size - h
