@@ -249,7 +249,7 @@ def svShow(img, anns = None, lbs='', mask=True, svBx=True, show=False):
     for _, _, confidence, class_id,_ in dets:
         label = f'{lbs}_{class_id}: {confidence:0.2f}'
         labels.append(label)    
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+#     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     if lbs != '':
         dets.lable=lbs    
     if mask:
