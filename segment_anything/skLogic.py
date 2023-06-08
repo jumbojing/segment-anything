@@ -7,8 +7,10 @@ from ipywidgets import interact
 import pickle
 import supervision as sv
 
-def pk2file(file, data=None, save=True):
-    if save:
+def pk2file(file, data=None):
+    if not file.endswith('.pickle'):
+        file = file+'.pickle'    
+    if data is not None:
         with open(file, 'wb') as f:
             pickle.dump(data, f)
     else:
@@ -220,34 +222,57 @@ def xywh_to_xyxy(boxes_xywh: np.ndarray) -> np.ndarray:
     return xyxy
 
 
-def svAllSam(sam_result): # 将全分的结果转为sv.Dets    
-    sorted_generated_masks = sorted(
-        sam_result, key=lambda x: x["area"], reverse=True
-    )
+def svAllSam(sData, cId=0): # 将全分的结果转为sv.Dets
+    
+    if isinstance(sData[0], dict):
+        sorted_generated_masks = sorted(
+            sData, key=lambda x: x["area"], reverse=True
+        )
+        xywh = np.array([mask["bbox"] for mask in sorted_generated_masks])
+        mask = np.array([mask["segmentation"] for mask in sorted_generated_masks])
+        confidence = np.array([mask["predicted_iou"] for mask in sorted_generated_masks])
+        tracker_id = np.arange(len(sorted_generated_masks))
+        class_id = np.ones(len(sorted_generated_masks))*cId
+        return sv.Detections(xyxy=xywh_to_xyxy(xywh),
+                            mask=mask,
+                            confidence=np.array(confidence),
+                            tracker_id=tracker_id,
+                            class_id=class_id
+                            )
+    elif isinstance(sData[0], list):
+        for i, data in enumerate(sData):
+            svData = svAllSam(data, cId=i)
+            if i == 0:
+                dets = sv.Detections(xyxy=svData.xyxy,
+                                    mask=svData.mask,
+                                    confidence=svData.confidence,
+                                    tracker_id=svData.tracker_id,
+                                    class_id=svData.class_id
+                                    )
 
-    xywh = np.array([mask["bbox"] for mask in sorted_generated_masks])
-    mask = np.array([mask["segmentation"] for mask in sorted_generated_masks])
-    confidence = np.array([mask["predicted_iou"] for mask in sorted_generated_masks])
-    class_id = np.arange(len(sorted_generated_masks))
-    return sv.Detections(xyxy=xywh_to_xyxy(boxes_xywh=xywh),
-                         mask=mask,
-                         confidence=np.array(confidence),
-                         class_id=class_id
-                        )
+            else:
+                dets.xyxy=np.append(dets.xyxy,svData.xyxy, axis=0)
+                dets.mask=np.append(dets.mask,svData.mask, axis=0)
+                dets.confidence=np.append(dets.confidence,svData.confidence, axis=0)
+                dets.tracker_id=np.append(dets.tracker_id,svData.tracker_id, axis=0)
+                dets.class_id=np.append(dets.class_id,svData.class_id, axis=0)
+        return dets
 
-
-def svShow(img, anns = None, lbs='', mask=True, svBx=True, show=False):
+def svShow(img, anns = None, dets=None, cId=None, tId=None, mask=True, svBx=True, show=False):
     ''' sv显示万分的anns
     
     '''
-    dets = svAllSam(anns)
+    if anns is not None:
+        dets = svAllSam(anns)
     box_annotator = sv.BoxAnnotator()
     mask_annotator = sv.MaskAnnotator()
-    if dets.class_id is None:
-        dets.class_id = np.arange(len(dets))    
+    if cId is None:
+        cId = dets.class_id
+    if tId is None:
+        tId = dets.tracker_id
     labels = []
     for _, _, confidence, class_id,_ in dets:
-        label = f'{lbs}_{class_id}: {confidence:0.2f}'
+        label = f'{cId}_{tracker_id}: {confidence:0.2f}'
         labels.append(label)    
 #     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     if lbs != '':
