@@ -292,4 +292,30 @@ def svShow(img, anns = None, dets=None, cId=None, tId=None, mask=True, svBx=True
         sv.plot_image(annotated_image, (16, 16))
     else:
         return annotated_image, dets
+
     
+def getBbox(img, thr=0, crop=False, pad=0):
+    """获取2D和3D图像的bbox, 返回xyxy或xyzxyz"""
+    if isinstance(img, np.ndarray):
+        img = sitk.GetImageFromArray(img)
+    img = img > thr
+    d = img.GetDimension()
+    ls = sitk.LabelShapeStatisticsImageFilter()
+    ls.Execute(sitk.Cast(img, sitk.sitkUInt8))
+    bb = np.array(ls.GetBoundingBox(1))
+    ini, size = bb[:d], bb[d:]
+    fin = ini + size
+    ini -= pad
+    fin += pad
+    image_size = np.array(img.GetSize())
+    ini[ini < 0] = 0 # 防止ini小于0
+    for i in range(d):
+        fin[i] = min(fin[i], image_size[i]) # 防止fin超出图像的范围
+    size = fin - ini
+    if crop:
+        if d == 2:
+            return img[ini[0]:fin[0], ini[1]:fin[1]]
+        else:
+            return img[ini[0]:fin[0], ini[1]:fin[1], ini[2]:fin[2]]
+    else:
+        return np.array(ini.tolist() + fin.tolist())    
