@@ -131,17 +131,20 @@ def orientDic(img):
             'Y': 'P-A'[img.GetDirection()[4]+1],
             'Z': 'I-S'[img.GetDirection()[8]+1]}
 
-def skShow(img, 
-           slice = 'Z', 
-           title=None, 
-           margin=0.05, 
-           dpi=80, 
+from ipywidgets import interact
+import copy
+def skShow(img,
+           slice = 'Z',
+           title=None,
+           margin=0.05,
+           dpi=80,
            fSize=None,
            cmap="gray"):
     if isinstance(img, np.ndarray):
         nda = np.copy(img)
         img = sitk.GetImageFromArray(img)
     else:
+        img = copy.deepcopy(img)
         nda = sitk.GetArrayFromImage(img)
     spacing = img.GetSpacing()
     size = img.GetSize()
@@ -164,42 +167,42 @@ def skShow(img,
     # nda.shape = shape# nda的方向为LPS
     # size = nda.shape # size为z,y,x
     print('size:',size)
-    xyzSize = [int(i+1) 
-               for i 
+    xyzSize = [int(i+1)
+               for i
                in (np.array(spacing)*np.array(size))
               ]
     sInd = dict(Z=0, Y=1, X=2)
     sDic = [dict(drt=['A-->P', 'L<--R'],
-                 nda=nda, # nda的方向为LPS
-                 fsize=(size[0], size[1]), # fsize为x,y
-                 xyzSize=(xyzSize[0], xyzSize[1]),
-                 size= size[2],
+                 nda=nda, # nda的方向为LP
+                 x = xyzSize[0],
+                 y = xyzSize[1],
+                 z = size[2],
                  extent = (xyzSize[0],0,0,xyzSize[1]) # (left, right, bottom, top)
                  ),
             dict(drt=['I<--S', 'L<--R'],
-                 nda=np.transpose(nda, (1,0,2)), # nda的方向为PLS
-                 fsize=(size[0], size[2]),
-                 xyzSize=(xyzSize[0], xyzSize[2]),  
-                 size= size[1],
-                 extent = (xyzSize[0],0,xyzSize[1],0) # (left, right, bottom, top)
+                 nda=np.transpose(nda, (1,0,2)), # nda的方向为LS
+                 x = xyzSize[0],
+                 y = xyzSize[2],
+                 z= size[1],
+                 extent = (xyzSize[0],0,xyzSize[2],0) # (left, right, bottom, top)
                  ),
             dict(drt=['I<--S', 'P<--A'],
-                 nda=np.transpose(nda, (2,0,1)), # nda的方向为SLP
-                 fsize=(size[2], size[1]),
-                 xyzSize=(xyzSize[0], xyzSize[1]),
-                 size= size[0],
-                 extent = (xyzSize[0],0,xyzSize[1],0) # (left, right, bottom, top)
+                 nda=np.transpose(nda, (2,0,1)), # nda的方向为SP
+                 x = xyzSize[1],
+                 y = xyzSize[2],
+                 z = size[0],
+                 extent = (xyzSize[1],0,xyzSize[2], 0) # (left, right, bottom, top)
                  )][sInd[slice]]
     if fSize is not None:
         figsize = fSize
     else:
-        figsize = (1 + margin) * sDic['fsize'][0] / dpi, (1 + margin) * sDic['fsize'][1] / dpi # TypeError: string indices must be integers
+        figsize = (1 + margin) * sDic['x'] / dpi, (1 + margin) * sDic['y'] / dpi # TypeError: string indices must be integers
     # extent = (0, sDic['xyzSize'][0], sDic['xyzSize'][1],0) # (left, right, bottom, top)
     nda = sDic['nda']
     drt = sDic['drt']
     def callback(axe=None):
 
-        fig = plt.figure(figsize=figsize, dpi=dpi) # figsize: (width, height) in inches
+        fig = plt.figure(figsize=figsize, dpi=dpi) 
 
         ax = fig.add_axes([margin, margin, 1 - 2 * margin, 1 - 2 * margin])
 
@@ -213,7 +216,7 @@ def skShow(img,
             plt.title(title)
 
         return plt.show()
-    interact(callback, axe=(0, sDic['size'] - 1))
+    interact(callback, axe=(0, sDic['z'] - 1))
     
     
 def xywh_to_xyxy(boxes_xywh: np.ndarray) -> np.ndarray:
