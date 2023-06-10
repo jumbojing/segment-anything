@@ -6,6 +6,7 @@ from IPython.display import display
 from ipywidgets import interact
 import pickle
 import supervision as sv
+import itertools as itt
 
 def pk2file(file, data=None):
     if not file.endswith('.pickle'):
@@ -272,11 +273,9 @@ def svShow(img, anns = None, dets=None, cId=None, tId=None, mask=True, svBx=True
         tId = dets.tracker_id
     labels = []
     for _, _, confidence, class_id,_ in dets:
-        label = f'{cId}_{tracker_id}: {confidence:0.2f}'
+        label = f'{cId}_{tId}: {confidence:0.2f}'
         labels.append(label)    
-#     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    if lbs != '':
-        dets.lable=lbs    
+#     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) 
     if mask:
         annotated_image = mask_annotator.annotate(scene=img, detections=dets)
         if svBx:
@@ -319,3 +318,50 @@ def getBbox(img, thr=0, crop=False, pad=0):
             return img[ini[0]:fin[0], ini[1]:fin[1], ini[2]:fin[2]]
     else:
         return np.array(ini.tolist() + fin.tolist())    
+    
+    # The function which is used to rotate (and make the 3D image isotropic) using euler angles
+# https://discourse.itk.org/t/simpleitk-euler3d-transform-problem-with-output-size-resampling/4387/4
+def skRot(image, angs = [0,0,0], opSpc = None, bgVal=0.0):
+
+    euTfm = sitk.Euler3DTransform (
+                image.TransformContinuousIndexToPhysicalPoint(
+                    [(sz-1)/2.0 for sz in image.GetSize()]),
+                np.deg2rad(angs[0]),
+                np.deg2rad(angs[1]),
+                np.deg2rad(angs[2]))
+
+    # compute the resampling grid for the transformed image
+    max_indexes = [sz-1 for sz in image.GetSize()]
+    exInds = list(itt.product(*(
+                list(zip([0]*image.GetDimension(),
+                        max_indexes)))))
+    exPsTfmd = [euTfm.TransformPoint(
+                    image.TransformContinuousIndexToPhysicalPoint(
+                        p))
+                        for p in exInds]
+
+    opMinCds = np.min(exPsTfmd, axis=0)
+    opMaxCds = np.max(exPsTfmd, axis=0)
+
+    # isotropic ouput spacing
+    if opSpc is None:
+      opSpc = min(image.GetSpacing())
+    opSpc = [opSpc]*image.GetDimension()
+
+    opOri = opMinCds
+    opSize = [int(((omx-omn)/ospc)+0.5)
+              for ospc, omn, omx
+              in zip(opSpc, opMinCds, opMaxCds)]
+
+    opDrt = [1,0,0,0,1,0,0,0,1]
+    opPxTp = image.GetPixelIDValue()
+
+    return sitk.Resample(image,
+                         opSize,
+                         euTfm.GetInverse(),
+                         sitk.sitkLinear,
+                         opOri,
+                         opSpc,
+                         opDrt,
+                         bgVal,
+                         opPxTp)
